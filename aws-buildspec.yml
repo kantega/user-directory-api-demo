@@ -1,0 +1,14 @@
+version: 0.2
+
+run-as: java
+
+phases: 
+  install:
+    runtime-versions:
+      java: openjdk11
+  build:
+    commands:
+      - mvn package
+      - docker build -f src/main/docker/Dockerfile.jvm -t /user-directory-api-jvm .
+  post-build: 
+    
