@@ -20,7 +20,7 @@ phases:
             - echo "Pushing docker image"
             - docker tag user-dir-api:latest $IMAGE_URI
             - docker push $IMAGE_URI
-            - printf '[{"name":"run-user-dir-api","imageUri":"%s"}]' $IMAGE_URI > imagedefinitions.json
+            - printf '[{"name":"user-dir-api","imageUri":"%s"}]' $IMAGE_URI > imagedefinitions.json
 
 artifacts:
     files: imagedefinitions.json
