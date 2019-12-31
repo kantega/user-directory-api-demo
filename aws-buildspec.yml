@@ -1,5 +1,7 @@
 version: 0.2
-
+env:
+    variables:
+        IMAGE_URI: "535376556962.dkr.ecr.eu-west-1.amazonaws.com/user-dir-api:latest"
 phases:
     install:
         runtime-versions:
@@ -16,6 +18,9 @@ phases:
     post_build:
         commands:
             - echo "Pushing docker image"
-            - docker tag user-dir-api:latest 535376556962.dkr.ecr.eu-west-1.amazonaws.com/user-dir-api:latest
-            - docker push 535376556962.dkr.ecr.eu-west-1.amazonaws.com/user-dir-api:latest
+            - docker tag user-dir-api:latest $IMAGE_URI
+            - docker push $IMAGE_URI
+            - printf '[{"name":"run-user-dir-api","imageUri":"%s"}]' $IMAGE_URI > imagedefinitions.json
 
+artifacts:
+    files: imagedefinitions.json
