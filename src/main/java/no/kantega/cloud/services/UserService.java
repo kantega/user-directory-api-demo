@@ -17,7 +17,7 @@ public class UserService {
         addUser(User.builder().username("fro").name("Frode").email("f.b@ka.no").build());
         addUser(User.builder().username("fro").name("Frode").email("f.s@ka.no").build());
         addUser(User.builder().username("jor").name("Jørund").email("j.l@ka.no").build());
-        addUser(User.builder().username("oyv").name("Øyvind").email("o.k@ka.no").build());
+        addUser(User.builder().username("oyv").name("ØyvindK").email("o.k@ka.no").build());
         addUser(User.builder().username("tor").name("Tore").email("t.e.a@ka.no").build());
         addUser(User.builder().username("tor").name("Torstein").email("t.s@ka.no").build());
         addUser(User.builder().username("veg").name("Vegard").email("v.s@ka.no").build());
