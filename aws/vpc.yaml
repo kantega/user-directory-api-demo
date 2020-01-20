@@ -1,0 +1,338 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 'Describes the VPC used for deployments'
+
+Resources:
+    VPC:
+        Type: 'AWS::EC2::VPC'
+        Properties:
+            CidrBlock: 10.0.0.0/16
+            EnableDnsHostnames: 'true'
+            EnableDnsSupport: 'true'
+
+    #### Network access ####
+    # Internet gateway
+    InternetGateway:
+        Type: 'AWS::EC2::InternetGateway'
+    AttachGateway:
+        Type: 'AWS::EC2::VPCGatewayAttachment'
+        Properties:
+            InternetGatewayId: !Ref InternetGateway
+            VpcId: !Ref VPC
+
+    # Elastic IPs
+    IPOne:
+        Type: 'AWS::EC2::EIP'
+        DependsOn: AttachGateway
+        Properties:
+            Domain: vpc
+    IPTwo:
+        Type: 'AWS::EC2::EIP'
+        DependsOn: AttachGateway
+        Properties:
+            Domain: vpc
+
+
+    # NAT Gateways
+    NatGatewayOne:
+        Type: 'AWS::EC2::NatGateway'
+        Properties:
+            AllocationId: !GetAtt IPOne.AllocationId
+            SubnetId: !Ref PubSubnetOne
+    NatGatewayTwo:
+        Type: 'AWS::EC2::NatGateway'
+        Properties:
+            AllocationId: !GetAtt IPTwo.AllocationId
+            SubnetId: !Ref PubSubnetTwo
+
+    #### Subnets #####
+    PubSubnetOne:
+        Type: 'AWS::EC2::Subnet'
+        Properties:
+            AvailabilityZone: !Join
+                - ''
+                -   - !Ref 'AWS::Region'
+                    - a
+            CidrBlock: 10.0.0.0/24
+            VpcId: !Ref VPC
+    PubSubnetTwo:
+        Type: 'AWS::EC2::Subnet'
+        Properties:
+            AvailabilityZone: !Join
+                - ''
+                -   - !Ref 'AWS::Region'
+                    - b
+            CidrBlock: 10.0.1.0/24
+            VpcId: !Ref VPC
+
+
+    PrivSubnetOne:
+        Type: 'AWS::EC2::Subnet'
+        Properties:
+            AvailabilityZone: !Join
+                - ''
+                -   - !Ref 'AWS::Region'
+                    - a
+            CidrBlock: 10.0.2.0/24
+            VpcId: !Ref VPC
+    PrivSubnetTwo:
+        Type: 'AWS::EC2::Subnet'
+        Properties:
+            AvailabilityZone: !Join
+                - ''
+                -   - !Ref 'AWS::Region'
+                    - b
+            CidrBlock: 10.0.3.0/24
+            VpcId: !Ref VPC
+
+    ##### Routes #####
+    # Public route table
+    PublicRouteTable:
+        Type: 'AWS::EC2::RouteTable'
+        Properties:
+            VpcId: !Ref VPC
+
+    PublicRouteEntry:
+        Type: 'AWS::EC2::Route'
+        Properties:
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+            RouteTableId: !Ref PublicRouteTable
+
+    # Private route tables.
+    # Because we have one NAT gateway for each AZ, we also need one route
+    # table with a corresponding route for each of the NGWs.
+    PrivateRouteTableOne:
+        Type: 'AWS::EC2::RouteTable'
+        Properties:
+            VpcId: !Ref VPC
+    PrivateRouteTableTwo:
+        Type: 'AWS::EC2::RouteTable'
+        Properties:
+            VpcId: !Ref VPC
+
+    PrivateRouteOne:
+        Type: 'AWS::EC2::Route'
+        Properties:
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGatewayOne
+            RouteTableId: !Ref PrivateRouteTableOne
+
+    PrivateRouteTwo:
+        Type: 'AWS::EC2::Route'
+        Properties:
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGatewayTwo
+            RouteTableId: !Ref PrivateRouteTableTwo
+
+    # Associate the subnets with their respective route tables
+    PubSubnetOneRouteTableAssociation:
+        Type: 'AWS::EC2::SubnetRouteTableAssociation'
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            SubnetId: !Ref PubSubnetOne
+    PubSubnetTwoRouteTableAssociation:
+        Type: 'AWS::EC2::SubnetRouteTableAssociation'
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            SubnetId: !Ref PubSubnetTwo
+
+    PrivSubnetOneRouteTableAssociation:
+        Type: 'AWS::EC2::SubnetRouteTableAssociation'
+        Properties:
+            RouteTableId: !Ref PrivateRouteTableOne
+            SubnetId: !Ref PrivSubnetOne
+    PrivSubnetTwoRouteTableAssociation:
+        Type: 'AWS::EC2::SubnetRouteTableAssociation'
+        Properties:
+            RouteTableId: !Ref PrivateRouteTableTwo
+            SubnetId: !Ref PrivSubnetTwo
+
+
+    #### Load balancer ####
+    # A public facing load balancer, this is used for accepting traffic from the public
+    # internet and directing it to public facing microservices
+    PublicLoadBalancerSG:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Access to the public facing load balancer
+            VpcId: !Ref 'VPC'
+            SecurityGroupIngress:
+                # Allow access to ALB from anywhere on the internet
+                -   CidrIp: 0.0.0.0/0
+                    IpProtocol: -1
+    PublicLoadBalancer:
+        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+        Properties:
+            Scheme: internet-facing
+            Subnets:
+                # The load balancer is placed into the public subnets, so that traffic
+                # from the internet can reach the load balancer directly via the internet gateway
+                - !Ref PubSubnetOne
+                - !Ref PubSubnetTwo
+            SecurityGroups: [!Ref 'PublicLoadBalancerSG']
+
+    # A dummy target group is used to setup the ALB to just drop traffic
+    # initially, before any real service target groups have been added.
+    DummyTargetGroupPublic:
+        Type: AWS::ElasticLoadBalancingV2::TargetGroup
+        Properties:
+            Name: !Join ['-', [!Ref 'AWS::StackName', 'drop-1']]
+            VpcId: !Ref 'VPC'
+            Port: 80
+            Protocol: HTTP
+    PublicLoadBalancerListener:
+        Type: AWS::ElasticLoadBalancingV2::Listener
+        DependsOn: PublicLoadBalancer
+        Properties:
+            DefaultActions:
+                -   TargetGroupArn: !Ref 'DummyTargetGroupPublic'
+                    Type: 'forward'
+            LoadBalancerArn: !Ref PublicLoadBalancer
+            Port: 80
+            Protocol: HTTP
+    ECSCluster:
+        Type: AWS::ECS::Cluster
+
+    #### IAM ####
+    # This is an IAM role which authorizes ECS to manage resources on your
+    # account on your behalf, such as updating your load balancer with the
+    # details of where your containers are, so that traffic can reach your
+    # containers.
+    ECSRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service: [ecs.amazonaws.com]
+                        Action: ['sts:AssumeRole']
+            Path: /
+            Policies:
+                -   PolicyName: ecs-service
+                    PolicyDocument:
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    # Rules which allow ECS to attach network interfaces to instances
+                                    # on your behalf in order for awsvpc networking mode to work right
+                                    - 'ec2:AttachNetworkInterface'
+                                    - 'ec2:CreateNetworkInterface'
+                                    - 'ec2:CreateNetworkInterfacePermission'
+                                    - 'ec2:DeleteNetworkInterface'
+                                    - 'ec2:DeleteNetworkInterfacePermission'
+                                    - 'ec2:Describe*'
+                                    - 'ec2:DetachNetworkInterface'
+
+                                    # Rules which allow ECS to update load balancers on your behalf
+                                    # with the information about how to send traffic to your containers
+                                    - 'elasticloadbalancing:DeregisterInstancesFromLoadBalancer'
+                                    - 'elasticloadbalancing:DeregisterTargets'
+                                    - 'elasticloadbalancing:Describe*'
+                                    - 'elasticloadbalancing:RegisterInstancesWithLoadBalancer'
+                                    - 'elasticloadbalancing:RegisterTargets'
+                                Resource: '*'
+    # This is a role which is used by the ECS tasks themselves.
+    ECSTaskExecutionRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service: [ecs-tasks.amazonaws.com]
+                        Action: ['sts:AssumeRole']
+            Path: /
+            Policies:
+                -   PolicyName: AmazonECSTaskExecutionRolePolicy
+                    PolicyDocument:
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    # Allow the ECS Tasks to download images from ECR
+                                    - 'ecr:GetAuthorizationToken'
+                                    - 'ecr:BatchCheckLayerAvailability'
+                                    - 'ecr:GetDownloadUrlForLayer'
+                                    - 'ecr:BatchGetImage'
+
+                                    # Allow the ECS tasks to upload logs to CloudWatch
+                                    - 'logs:CreateLogStream'
+                                    - 'logs:PutLogEvents'
+                                Resource: '*'
+
+    #### Security groups ####
+    # A security group for the containers we will run in Fargate.
+    # Three rules, allowing network traffic from a public facing load
+    # balancer, a private internal load balancer, and from other members
+    # of the security group.
+    FargateContainerSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Access to the Fargate containers
+            VpcId: !Ref 'VPC'
+    EcsSecurityGroupIngressFromPublicALB:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            Description: Ingress from the public ALB
+            GroupId: !Ref 'FargateContainerSecurityGroup'
+            IpProtocol: -1
+            SourceSecurityGroupId: !Ref 'PublicLoadBalancerSG'
+
+Outputs:
+    VPCId:
+        Description: The ID of the VPC that this stack is deployed in
+        Value: !Ref 'VPC'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'VPCId' ] ]
+    ExternalUrl:
+        Description: The url of the external load balancer
+        Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ExternalUrl' ] ]
+    PublicListener:
+        Description: The ARN of the public load balancer's Listener
+        Value: !Ref PublicLoadBalancerListener
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PublicListener' ] ]
+    # Subnets
+    PubSubnetOne:
+        Description: Public subnet one
+        Value: !Ref 'PubSubnetOne'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PubSubnetOne' ] ]
+    PubSubnetTwo:
+        Description: Public subnet two
+        Value: !Ref 'PubSubnetTwo'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PubSubnetTwo' ] ]
+    PrivSubnetOne:
+        Description: Private subnet one
+        Value: !Ref 'PrivSubnetOne'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PrivSubnetOne' ] ]
+    PrivSubnetTwo:
+        Description: Private subnet two
+        Value: !Ref 'PrivSubnetTwo'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PrivSubnetTwo' ] ]
+    # ECS
+    ECSClusterName:
+        Description: The name of the ECS cluster
+        Value: !Ref 'ECSCluster'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ECSClusterName' ] ]
+    ECSRole:
+        Description: The ARN of the ECS role
+        Value: !GetAtt 'ECSRole.Arn'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ECSRole' ] ]
+    ECSTaskExecutionRole:
+        Description: The ARN of the ECS role
+        Value: !GetAtt 'ECSTaskExecutionRole.Arn'
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ECSTaskExecutionRole' ] ]
+    FargateContainerSecurityGroup:
+        Description: The security groups for the containers to run in Fargate
+        Value: !Ref FargateContainerSecurityGroup
+        Export:
+            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'FargateContainerSecurityGroup']]
