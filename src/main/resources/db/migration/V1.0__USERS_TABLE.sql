@@ -1,0 +1,19 @@
+CREATE TABLE USERS
+(
+    UUID     uuid PRIMARY KEY,
+    USERNAME varchar(255) UNIQUE,
+    NAME     text,
+    EMAIL    text
+);
+
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( '4fb585d2-ff00-46fa-a0ea-2d07396b3139', 'and', 'Andreas', 'a.o@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( 'f38ffb4f-7ebb-48d1-9efe-c35607746507', 'edv', 'Edvard', 'e.k.k@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( '8a980255-7630-4f06-88a4-c14ce946ae33', 'erl', 'Erling', 'e.s@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( '2a445521-1490-478d-a5e6-36a57dd0d03d', 'esp', 'Espen', 'e.f@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( '3bb4cdeb-ae26-4452-817f-f19aff8b64dc', 'frob', 'Frode', 'f.b@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( '75a102f6-3df7-415e-a389-a5bf67845972', 'fros', 'Frode', 'f.s@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( 'c32873cb-63e2-4e86-8631-8d5dfc93614d', 'jor', 'Jørund', 'j.l@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( 'ab4571c3-4986-4a17-8848-dbd053888e13', 'oyv', 'ØyvindK', 'o.k@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( 'a9138994-5f35-4031-987c-955ff344b6fc', 'tora', 'Tore', 't.e.a@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( '04433524-c911-4062-a070-b0464bb218fa', 'tors', 'Torstein', 't.s@ka.no');
+INSERT INTO USERS (UUID, USERNAME, NAME, EMAIL) VALUES( '43940de4-af3f-49b7-8322-62f85e42bcc8', 'veg', 'Vegard', 'v.s@ka.no');

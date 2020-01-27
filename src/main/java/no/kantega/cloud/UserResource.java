@@ -43,10 +43,12 @@ public class UserResource {
 
     @POST
     public Response addUser(User user) {
-        userService.addUser(user);
-        return Response.created(URI.create("/api/users/" + user.getId()))
-            .entity(user)
-            .build();
+        if (userService.addUser(user)) {
+            return Response.created(URI.create("/api/users/" + user.getId()))
+                .entity(user)
+                .build();
+        }
+        return Responses.badRequest("Invalid user");
     }
 
     @DELETE
