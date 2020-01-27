@@ -7,20 +7,20 @@ This application was made to test various cloud solutions among the main cloud p
 Dockerfiles for creating images (jvm and native) can be found at `src/main/docker`.
 
 ### Usage
-**Run quarkus dev for local development:**
+#### Run quarkus dev for local development:
 ```shell script
 mvn compile quarkus:dev
 ```
 
 This will use H2 as DB for local development.
 
-**Run quarkus locally with `docker-compose`**
+#### Run quarkus locally with `docker-compose`:
 Requires `docker` and `docker-compose`. 
 ```shell script
 docker-compose up --build
 ```
 
-**Run quarkus dev for local development with PostgreSQL**
+#### Run quarkus dev for local development with PostgreSQL:
 Start postgres with docker-compose:
 ```shell script
 docker-compose up database
@@ -34,13 +34,13 @@ QUARKUS_DATASOURCE_USERNAME=postgres
 QUARKUS_DATASOURCE_PASSWORD=localpass
 ```
 
-**Create a native docker image:**
+#### Create a native docker image:
 ```shell script
 mvn package -Pnative -Dquarkus.native.container-build=true
 docker build -f src/main/docker/Dockerfile.native -t quarkus/user-directory-api .
 ```
 
-**Create a Java docker image:**
+#### Create a Java docker image:
 ```shell script
 docker build -f src/main/docker/Dockerfile.jvm -t quarkus/user-directory-api-jvm .
 ```
@@ -56,6 +56,6 @@ POSTGRES_PASSWORD=localpass
 POSTGRES_PORT=5432
 ```
 
-**Production**
+#### Production:
 
 For production the variables mentioned in the note on the Java docker image should be configured. 
