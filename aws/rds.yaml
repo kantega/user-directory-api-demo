@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  DBEngine:
+    Type: String
+    Default: postgres
+    Description: An AWS managed database service that should be run
+  NetworkingStackName:
+    Type: String
+    Default: production
+    Description: The name of the parent networking stack that you created. Necessary
+      to locate and reference resources created by that stack.
+
+Resources:
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: description
+      DBSubnetGroupName: DatabaseSubnetGroup
+      SubnetIds:
+        -   Fn::ImportValue:
+              !Join [':', [!Ref 'NetworkingStackName', 'PrivSubnetOne']]
+        -   Fn::ImportValue:
+              !Join [':', [!Ref 'NetworkingStackName', 'PrivSubnetTwo']]
+
+  MyDbSecurityByCIDRIPGroup:
+    Type: AWS::RDS::DBSecurityGroup
+    Properties:
+      GroupDescription: Ingress for CIDRIP
+      DBSecurityGroupIngress:
+        CIDRIP: "10.0.0.0/16"
+      EC2VpcId:
+        Fn::ImportValue:
+          !Join [':', [!Ref 'NetworkingStackName', 'VPCId']]
+
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete #delete retain, snapshot. note how they work.
+    Properties:
+      DBName: "user_api_database"
+      #Alternatively: VPCSecurityGroups, security group for the database, if set do not set VPC security group
+      DBSecurityGroups:
+        -   Ref: MyDbSecurityByCIDRIPGroup
+      #Initially allocated storage in GB
+      AllocatedStorage: '5'
+      #choose predefined database size. db.t = burstable performance DB db.x=memory optimized DB, m=standard DB db.r
+      DBInstanceClass: db.t3.medium
+      #What datbase to run
+      Engine: !Ref 'DBEngine'
+      DBSubnetGroupName: DatabaseSubnetGroup
+      Port: 5432
+      MasterUsername: admin
+      MasterUserPassword: test123321test12999
