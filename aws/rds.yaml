@@ -11,6 +11,18 @@ Parameters:
       to locate and reference resources created by that stack.
 
 Resources:
+  # Database credentials, this will generate a Secret containing a JSON structure:
+  # {"username": "postgres", "password": "{{random}}"}
+  DatabaseCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: !Join [' ', ['Credentials for user_api_database created on network stack ', !Ref 'NetworkingStackName']]
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "postgres"}'
+        GenerateStringKey: password
+        PasswordLength: 30
+        ExcludeCharacters: '\"@/\\'
+
   DatabaseSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -22,7 +34,7 @@ Resources:
         -   Fn::ImportValue:
               !Join [':', [!Ref 'NetworkingStackName', 'PrivSubnetTwo']]
 
-  MyDbSecurityByCIDRIPGroup:
+  DbSecurityByCIDRIPGroup:
     Type: AWS::RDS::DBSecurityGroup
     Properties:
       GroupDescription: Ingress for CIDRIP
@@ -35,12 +47,13 @@ Resources:
 
   Database:
     Type: AWS::RDS::DBInstance
+    DependsOn: DatabaseCredentials
     DeletionPolicy: Delete #delete retain, snapshot. note how they work.
     Properties:
       DBName: "user_api_database"
       #Alternatively: VPCSecurityGroups, security group for the database, if set do not set VPC security group
       DBSecurityGroups:
-        -   Ref: MyDbSecurityByCIDRIPGroup
+        -   Ref: DbSecurityByCIDRIPGroup
       #Initially allocated storage in GB
       AllocatedStorage: '5'
       #choose predefined database size. db.t = burstable performance DB db.x=memory optimized DB, m=standard DB db.r
@@ -49,5 +62,17 @@ Resources:
       Engine: !Ref 'DBEngine'
       DBSubnetGroupName: DatabaseSubnetGroup
       Port: 5432
-      MasterUsername: admin
-      MasterUserPassword: test123321test12999
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref DatabaseCredentials, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref DatabaseCredentials, ':SecretString:password}}' ]]
+
+Outputs:
+  DatabaseId:
+    Description: The ID of the Database that this stack created
+    Value: !Ref 'Database'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabaseId' ] ]
+  DatabaseCredentialSecretsId:
+    Description: The ID of the database credentials Secret created for this stack.
+    Value: !Ref 'DatabaseCredentials'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabaseCredentialsSecretId']]
