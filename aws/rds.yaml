@@ -71,6 +71,16 @@ Outputs:
     Value: !Ref 'Database'
     Export:
       Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabaseId' ] ]
+  DatabaseAddress:
+    Description: The database address
+    Value: !GetAtt 'Database.Endpoint.Address'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabaseAddress' ] ]
+  DatabasePort:
+    Description: The database port
+    Value: !GetAtt 'Database.Endpoint.Port'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabasePort' ] ]
   DatabaseCredentialSecretsId:
     Description: The ID of the database credentials Secret created for this stack.
     Value: !Ref 'DatabaseCredentials'
