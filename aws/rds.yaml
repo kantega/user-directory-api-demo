@@ -16,7 +16,7 @@ Resources:
   DatabaseCredentials:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: !Join [' ', ['Credentials for user_api_database created on network stack ', !Ref 'NetworkingStackName']]
+      Description: !Sub 'Credentials for user_api_database created on network stack ${NetworkingStackName}'
       GenerateSecretString:
         SecretStringTemplate: '{"username": "postgres"}'
         GenerateStringKey: password
@@ -30,9 +30,9 @@ Resources:
       DBSubnetGroupName: DatabaseSubnetGroup
       SubnetIds:
         -   Fn::ImportValue:
-              !Join [':', [!Ref 'NetworkingStackName', 'PrivSubnetOne']]
+              !Sub '${NetworkingStackName}:PrivSubnetOne'
         -   Fn::ImportValue:
-              !Join [':', [!Ref 'NetworkingStackName', 'PrivSubnetTwo']]
+              !Sub '${NetworkingStackName}:PrivSubnetTwo'
 
   DbSecurityByCIDRIPGroup:
     Type: AWS::RDS::DBSecurityGroup
@@ -42,7 +42,7 @@ Resources:
         CIDRIP: "10.0.0.0/16"
       EC2VpcId:
         Fn::ImportValue:
-          !Join [':', [!Ref 'NetworkingStackName', 'VPCId']]
+          !Sub '${NetworkingStackName}:VPCId'
 
 
   Database:
@@ -62,27 +62,27 @@ Resources:
       Engine: !Ref 'DBEngine'
       DBSubnetGroupName: DatabaseSubnetGroup
       Port: 5432
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref DatabaseCredentials, ':SecretString:username}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref DatabaseCredentials, ':SecretString:password}}' ]]
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:password}}'
 
 Outputs:
   DatabaseId:
     Description: The ID of the Database that this stack created
     Value: !Ref 'Database'
     Export:
-      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabaseId' ] ]
+      Name: !Sub '${AWS::StackName}:DatabaseId'
   DatabaseAddress:
     Description: The database address
     Value: !GetAtt 'Database.Endpoint.Address'
     Export:
-      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabaseAddress' ] ]
+      Name: !Sub '${AWS::StackName}:DatabaseAddress'
   DatabasePort:
     Description: The database port
     Value: !GetAtt 'Database.Endpoint.Port'
     Export:
-      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabasePort' ] ]
+      Name: !Sub '${AWS::StackName}:DatabasePort'
   DatabaseCredentialSecretsId:
     Description: The ID of the database credentials Secret created for this stack.
     Value: !Ref 'DatabaseCredentials'
     Export:
-      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'DatabaseCredentialsSecretId']]
+      Name: !Sub '${AWS::StackName}:DatabaseCredentialsSecretId'

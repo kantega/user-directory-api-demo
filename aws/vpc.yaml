@@ -48,19 +48,13 @@ Resources:
     PubSubnetOne:
         Type: 'AWS::EC2::Subnet'
         Properties:
-            AvailabilityZone: !Join
-                - ''
-                -   - !Ref 'AWS::Region'
-                    - a
+            AvailabilityZone: !Sub '${AWS::Region}a'
             CidrBlock: 10.0.0.0/24
             VpcId: !Ref VPC
     PubSubnetTwo:
         Type: 'AWS::EC2::Subnet'
         Properties:
-            AvailabilityZone: !Join
-                - ''
-                -   - !Ref 'AWS::Region'
-                    - b
+            AvailabilityZone: !Sub '${AWS::Region}b'
             CidrBlock: 10.0.1.0/24
             VpcId: !Ref VPC
 
@@ -68,19 +62,13 @@ Resources:
     PrivSubnetOne:
         Type: 'AWS::EC2::Subnet'
         Properties:
-            AvailabilityZone: !Join
-                - ''
-                -   - !Ref 'AWS::Region'
-                    - a
+            AvailabilityZone: !Sub '${AWS::Region}a'
             CidrBlock: 10.0.2.0/24
             VpcId: !Ref VPC
     PrivSubnetTwo:
         Type: 'AWS::EC2::Subnet'
         Properties:
-            AvailabilityZone: !Join
-                - ''
-                -   - !Ref 'AWS::Region'
-                    - b
+            AvailabilityZone: !Sub '${AWS::Region}b'
             CidrBlock: 10.0.3.0/24
             VpcId: !Ref VPC
 
@@ -176,7 +164,7 @@ Resources:
     DummyTargetGroupPublic:
         Type: AWS::ElasticLoadBalancingV2::TargetGroup
         Properties:
-            Name: !Join ['-', [!Ref 'AWS::StackName', 'drop-1']]
+            Name: !Sub '${AWS::StackName}-drop-1'
             VpcId: !Ref 'VPC'
             Port: 80
             Protocol: HTTP
@@ -283,56 +271,56 @@ Outputs:
         Description: The ID of the VPC that this stack is deployed in
         Value: !Ref 'VPC'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'VPCId' ] ]
+            Name: !Sub '${AWS::StackName}:VPCId'
     ExternalUrl:
         Description: The url of the external load balancer
-        Value: !Join ['', ['http://', !GetAtt 'PublicLoadBalancer.DNSName']]
+        Value: !Sub 'http://${PublicLoadBalancer.DNSName}'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ExternalUrl' ] ]
+            Name: !Sub '${AWS::StackName}:ExternalUrl'
     PublicListener:
         Description: The ARN of the public load balancer's Listener
         Value: !Ref PublicLoadBalancerListener
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PublicListener' ] ]
+            Name: !Sub '${AWS::StackName}:PublicListener'
     # Subnets
     PubSubnetOne:
         Description: Public subnet one
         Value: !Ref 'PubSubnetOne'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PubSubnetOne' ] ]
+            Name: !Sub '${AWS::StackName}:PubSubnetOne'
     PubSubnetTwo:
         Description: Public subnet two
         Value: !Ref 'PubSubnetTwo'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PubSubnetTwo' ] ]
+            Name: !Sub '${AWS::StackName}:PubSubnetTwo'
     PrivSubnetOne:
         Description: Private subnet one
         Value: !Ref 'PrivSubnetOne'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PrivSubnetOne' ] ]
+            Name: !Sub '${AWS::StackName}:PrivSubnetOne'
     PrivSubnetTwo:
         Description: Private subnet two
         Value: !Ref 'PrivSubnetTwo'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'PrivSubnetTwo' ] ]
+            Name: !Sub '${AWS::StackName}:PrivSubnetTwo'
     # ECS
     ECSClusterName:
         Description: The name of the ECS cluster
         Value: !Ref 'ECSCluster'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ECSClusterName' ] ]
+            Name: !Sub '${AWS::StackName}:ECSClusterName'
     ECSRole:
         Description: The ARN of the ECS role
         Value: !GetAtt 'ECSRole.Arn'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ECSRole' ] ]
+            Name: !Sub '${AWS::StackName}:ECSRole'
     ECSTaskExecutionRole:
         Description: The ARN of the ECS role
         Value: !GetAtt 'ECSTaskExecutionRole.Arn'
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ECSTaskExecutionRole' ] ]
+            Name: !Sub '${AWS::StackName}:ECSTaskExecutionRole'
     FargateContainerSecurityGroup:
         Description: The security groups for the containers to run in Fargate
         Value: !Ref FargateContainerSecurityGroup
         Export:
-            Name: !Join [ ':', [ !Ref 'AWS::StackName', 'FargateContainerSecurityGroup']]
+            Name: !Sub '${AWS::StackName}:FargateContainerSecurityGroup'

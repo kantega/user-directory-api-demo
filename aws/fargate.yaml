@@ -71,7 +71,7 @@ Resources:
                 - FARGATE
             ExecutionRoleArn:
                 Fn::ImportValue:
-                  !Join [':', [!Ref 'NetworkingStackName', 'ECSTaskExecutionRole']]
+                  !Sub '${NetworkingStackName}:ECSTaskExecutionRole'
             TaskRoleArn:
                 Fn::If:
                     - 'HasCustomRole'
@@ -124,7 +124,7 @@ Resources:
             ServiceName: !Ref 'ServiceName'
             Cluster:
                 Fn::ImportValue:
-                  !Join [':', [!Ref 'NetworkingStackName', 'ECSClusterName']]
+                  !Sub '${NetworkingStackName}:ECSClusterName'
             LaunchType: FARGATE
             DeploymentConfiguration:
                 MaximumPercent: 200
@@ -134,12 +134,12 @@ Resources:
                 AwsvpcConfiguration:
                     SecurityGroups:
                         - Fn::ImportValue:
-                            !Join [':', [!Ref 'NetworkingStackName', 'FargateContainerSecurityGroup']]
+                            !Sub '${NetworkingStackName}:FargateContainerSecurityGroup'
                     Subnets:
                         - Fn::ImportValue:
-                            !Join [':', [!Ref 'NetworkingStackName', 'PrivSubnetOne']]
+                            !Sub '${NetworkingStackName}:PrivSubnetOne'
                         - Fn::ImportValue:
-                            !Join [':', [!Ref 'NetworkingStackName', 'PrivSubnetTwo']]
+                            !Sub '${NetworkingStackName}:PrivSubnetTwo'
             TaskDefinition: !Ref 'TaskDefinition'
             LoadBalancers:
                 - ContainerName: !Ref 'ServiceName'
@@ -166,7 +166,7 @@ Resources:
             UnhealthyThresholdCount: 2
             VpcId:
                 Fn::ImportValue:
-                  !Join [':', [!Ref 'NetworkingStackName', 'VPCId']]
+                  !Sub '${NetworkingStackName}:VPCId'
 
     # Create a rule on the load balancer for routing traffic to the target group
     LoadBalancerRule:
@@ -180,5 +180,5 @@ Resources:
                   Values: [!Ref 'Path']
             ListenerArn:
                 Fn::ImportValue:
-                  !Join [':', [!Ref 'NetworkingStackName', 'PublicListener']]
+                  !Sub '${NetworkingStackName}:PublicListener'
             Priority: !Ref 'Priority'
