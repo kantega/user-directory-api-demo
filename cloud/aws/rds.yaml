@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  DBEngine:
+    Type: String
+    Default: postgres
+    Description: An AWS managed database service that should be run
+  NetworkingStackName:
+    Type: String
+    Default: production
+    Description: The name of the parent networking stack that you created. Necessary
+      to locate and reference resources created by that stack.
+
+Resources:
+  # Database credentials, this will generate a Secret containing a JSON structure:
+  # {"username": "postgres", "password": "{{random}}"}
+  DatabaseCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: !Sub 'Credentials for user_api_database created on network stack ${NetworkingStackName}'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "postgres"}'
+        GenerateStringKey: password
+        PasswordLength: 30
+        ExcludeCharacters: '\"@/\\'
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: description
+      DBSubnetGroupName: DatabaseSubnetGroup
+      SubnetIds:
+        -   Fn::ImportValue:
+              !Sub '${NetworkingStackName}:PrivSubnetOne'
+        -   Fn::ImportValue:
+              !Sub '${NetworkingStackName}:PrivSubnetTwo'
+
+  DbSecurityByCIDRIPGroup:
+    Type: AWS::RDS::DBSecurityGroup
+    Properties:
+      GroupDescription: Ingress for CIDRIP
+      DBSecurityGroupIngress:
+        CIDRIP: "10.0.0.0/16"
+      EC2VpcId:
+        Fn::ImportValue:
+          !Sub '${NetworkingStackName}:VPCId'
+
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DependsOn: DatabaseCredentials
+    DeletionPolicy: Delete #delete retain, snapshot. note how they work.
+    Properties:
+      DBName: "user_api_database"
+      #Alternatively: VPCSecurityGroups, security group for the database, if set do not set VPC security group
+      DBSecurityGroups:
+        -   Ref: DbSecurityByCIDRIPGroup
+      #Initially allocated storage in GB
+      AllocatedStorage: '5'
+      #choose predefined database size. db.t = burstable performance DB db.x=memory optimized DB, m=standard DB db.r
+      DBInstanceClass: db.t3.medium
+      #What datbase to run
+      Engine: !Ref 'DBEngine'
+      DBSubnetGroupName: DatabaseSubnetGroup
+      Port: 5432
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:password}}'
+
+Outputs:
+  DatabaseId:
+    Description: The ID of the Database that this stack created
+    Value: !Ref 'Database'
+    Export:
+      Name: !Sub '${AWS::StackName}:DatabaseId'
+  DatabaseAddress:
+    Description: The database address
+    Value: !GetAtt 'Database.Endpoint.Address'
+    Export:
+      Name: !Sub '${AWS::StackName}:DatabaseAddress'
+  DatabasePort:
+    Description: The database port
+    Value: !GetAtt 'Database.Endpoint.Port'
+    Export:
+      Name: !Sub '${AWS::StackName}:DatabasePort'
+  DatabaseCredentialSecretsId:
+    Description: The ID of the database credentials Secret created for this stack.
+    Value: !Ref 'DatabaseCredentials'
+    Export:
+      Name: !Sub '${AWS::StackName}:DatabaseCredentialsSecretId'
