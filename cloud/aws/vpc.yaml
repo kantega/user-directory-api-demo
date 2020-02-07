@@ -1,6 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: 'Describes the VPC used for deployments'
 
+Parameters:
+  DefaultVPCId:
+    Type: String
+    Default: "vpc-8845a2f1"
+    Description: The ID of the Default VPC to create the peering connection for
+
 Resources:
     VPC:
         Type: 'AWS::EC2::VPC'
@@ -8,6 +14,13 @@ Resources:
             CidrBlock: 10.0.0.0/16
             EnableDnsHostnames: 'true'
             EnableDnsSupport: 'true'
+
+    # TODO: Finish peering
+    DefaultVPCPeeringConnection:
+      Type: 'AWS::EC2::VPCPeeringConnection'
+      Properties:
+        VpcId: !Ref VPC
+        PeerVpcId: !Ref DefaultVPCId
 
     #### Network access ####
     # Internet gateway
@@ -33,16 +46,16 @@ Resources:
 
 
     # NAT Gateways
-    NatGatewayOne:
-        Type: 'AWS::EC2::NatGateway'
-        Properties:
-            AllocationId: !GetAtt IPOne.AllocationId
-            SubnetId: !Ref PubSubnetOne
-    NatGatewayTwo:
-        Type: 'AWS::EC2::NatGateway'
-        Properties:
-            AllocationId: !GetAtt IPTwo.AllocationId
-            SubnetId: !Ref PubSubnetTwo
+#    NatGatewayOne:
+#        Type: 'AWS::EC2::NatGateway'
+#        Properties:
+#            AllocationId: !GetAtt IPOne.AllocationId
+#            SubnetId: !Ref PubSubnetOne
+#    NatGatewayTwo:
+#        Type: 'AWS::EC2::NatGateway'
+#        Properties:
+#            AllocationId: !GetAtt IPTwo.AllocationId
+#            SubnetId: !Ref PubSubnetTwo
 
     #### Subnets #####
     PubSubnetOne:
@@ -89,28 +102,28 @@ Resources:
     # Private route tables.
     # Because we have one NAT gateway for each AZ, we also need one route
     # table with a corresponding route for each of the NGWs.
-    PrivateRouteTableOne:
-        Type: 'AWS::EC2::RouteTable'
-        Properties:
-            VpcId: !Ref VPC
-    PrivateRouteTableTwo:
-        Type: 'AWS::EC2::RouteTable'
-        Properties:
-            VpcId: !Ref VPC
-
-    PrivateRouteOne:
-        Type: 'AWS::EC2::Route'
-        Properties:
-            DestinationCidrBlock: 0.0.0.0/0
-            NatGatewayId: !Ref NatGatewayOne
-            RouteTableId: !Ref PrivateRouteTableOne
-
-    PrivateRouteTwo:
-        Type: 'AWS::EC2::Route'
-        Properties:
-            DestinationCidrBlock: 0.0.0.0/0
-            NatGatewayId: !Ref NatGatewayTwo
-            RouteTableId: !Ref PrivateRouteTableTwo
+#    PrivateRouteTableOne:
+#        Type: 'AWS::EC2::RouteTable'
+#        Properties:
+#            VpcId: !Ref VPC
+#    PrivateRouteTableTwo:
+#        Type: 'AWS::EC2::RouteTable'
+#        Properties:
+#            VpcId: !Ref VPC
+#
+#    PrivateRouteOne:
+#        Type: 'AWS::EC2::Route'
+#        Properties:
+#            DestinationCidrBlock: 0.0.0.0/0
+#            NatGatewayId: !Ref NatGatewayOne
+#            RouteTableId: !Ref PrivateRouteTableOne
+#
+#    PrivateRouteTwo:
+#        Type: 'AWS::EC2::Route'
+#        Properties:
+#            DestinationCidrBlock: 0.0.0.0/0
+#            NatGatewayId: !Ref NatGatewayTwo
+#            RouteTableId: !Ref PrivateRouteTableTwo
 
     # Associate the subnets with their respective route tables
     PubSubnetOneRouteTableAssociation:
@@ -124,16 +137,16 @@ Resources:
             RouteTableId: !Ref PublicRouteTable
             SubnetId: !Ref PubSubnetTwo
 
-    PrivSubnetOneRouteTableAssociation:
-        Type: 'AWS::EC2::SubnetRouteTableAssociation'
-        Properties:
-            RouteTableId: !Ref PrivateRouteTableOne
-            SubnetId: !Ref PrivSubnetOne
-    PrivSubnetTwoRouteTableAssociation:
-        Type: 'AWS::EC2::SubnetRouteTableAssociation'
-        Properties:
-            RouteTableId: !Ref PrivateRouteTableTwo
-            SubnetId: !Ref PrivSubnetTwo
+#    PrivSubnetOneRouteTableAssociation:
+#        Type: 'AWS::EC2::SubnetRouteTableAssociation'
+#        Properties:
+#            RouteTableId: !Ref PrivateRouteTableOne
+#            SubnetId: !Ref PrivSubnetOne
+#    PrivSubnetTwoRouteTableAssociation:
+#        Type: 'AWS::EC2::SubnetRouteTableAssociation'
+#        Properties:
+#            RouteTableId: !Ref PrivateRouteTableTwo
+#            SubnetId: !Ref PrivSubnetTwo
 
 
     #### Load balancer ####
