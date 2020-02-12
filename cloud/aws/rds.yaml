@@ -39,7 +39,9 @@ Resources:
     Properties:
       GroupDescription: Ingress for CIDRIP
       DBSecurityGroupIngress:
-        CIDRIP: "10.0.0.0/16"
+        CIDRIP:
+          Fn::ImportValue:
+            !Sub '${NetworkingStackName}:CidrRange'
       EC2VpcId:
         Fn::ImportValue:
           !Sub '${NetworkingStackName}:VPCId'
