@@ -10,6 +10,10 @@ Parameters:
     Type: String
     Default: 'igw-2bb1a14c' # ID of the default IGW attached to vpc-8845a2f1
     Description: The ID of the IGW attached to the default VPC
+  VpcCidrRange:
+    Type: String
+    Default: '172.31.0.0/16'
+    Description: The cidr range of the VPC this stack is deployed in - only used for export to other stacks.
   CidrRange:
     Type: String
     Default: '172.31.1.0/24'
@@ -205,6 +209,11 @@ Outputs:
     Value: !Ref VPCId
     Export:
       Name: !Sub '${AWS::StackName}:VPCId'
+  VpcCidrRange:
+    Description: The VPC CIDR range
+    Value: !Ref VpcCidrRange
+    Export:
+      Name: !Sub '${AWS::StackName}:VpcCidrRange'
   CidrRange:
     Description: The cidr range for the ECS subnets
     Value: !Ref CidrRange

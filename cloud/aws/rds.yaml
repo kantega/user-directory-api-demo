@@ -41,7 +41,7 @@ Resources:
       DBSecurityGroupIngress:
         CIDRIP:
           Fn::ImportValue:
-            !Sub '${NetworkingStackName}:CidrRange'
+            !Sub '${NetworkingStackName}:VpcCidrRange'
       EC2VpcId:
         Fn::ImportValue:
           !Sub '${NetworkingStackName}:VPCId'
