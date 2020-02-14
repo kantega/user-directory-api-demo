@@ -24,7 +24,6 @@ Parameters:
     Description: The number of subnet bits to use for each subnet
 
 Resources:
-
   #### Subnets #####
   PubSubnetOne:
     Type: 'AWS::EC2::Subnet'
@@ -66,6 +65,91 @@ Resources:
       CidrBlock: !Select [ 3, !Cidr [ !Ref CidrRange, 4, !Ref SubnetBits ]]
       VpcId: !Ref VPCId
 
+  ## NAT
+  NatInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPCId
+      GroupDescription: Access to the nat instnace
+      SecurityGroupIngress:
+        - CidrIp: !Ref VpcCidrRange
+          FromPort: -1
+          ToPort: -1
+          IpProtocol: tcp
+        - CidrIp: !Ref VpcCidrRange
+          IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-NAT-Access"
+  NatInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-03658c485122ead5c
+      SourceDestCheck: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} NAT1 instance"
+      KeyName: Kanteaga EC2 Test
+      NetworkInterfaces:
+        - SubnetId: !Ref PubSubnetOne
+          GroupSet: [!Ref NatInstanceSecurityGroup]
+          AssociatePublicIpAddress: true
+          DeviceIndex: 0
+  NatInstance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-03658c485122ead5c
+      SourceDestCheck: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} NAT2 instance"
+      KeyName: Kanteaga EC2 Test
+      NetworkInterfaces:
+        - SubnetId: !Ref PubSubnetTwo
+          GroupSet: [!Ref NatInstanceSecurityGroup]
+          AssociatePublicIpAddress: true
+          DeviceIndex: 0
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCId
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} Private Routes (AZ1)"
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref NatInstance1
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivSubnetOne
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCId
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} Private Routes (AZ2)"
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref NatInstance2
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivSubnetTwo
 
   #### Load balancer ####
   # A public facing load balancer, this is used for accepting traffic from the public
